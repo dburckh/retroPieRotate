@@ -1,3 +1,5 @@
+import signal
+import subprocess
 import sys
 import os
 
@@ -89,32 +91,39 @@ def rotate(rotation):
             resolution = file.readline().strip('\n')
         width, height = resolution.split(',')
         es_dict = {
-            # Retropie's 90/270 rotations are the opposite of ES's
-            ES_SCREEN_ROTATE_PREFIX: ES_SCREEN_ROTATE_PREFIX + VALUE_PREFIX + str(4 - int(rotation)) + VALUE_POSTFIX,
+            ES_SCREEN_ROTATE_PREFIX: ES_SCREEN_ROTATE_PREFIX + VALUE_PREFIX + rotation + VALUE_POSTFIX,
             # Transpose the width and height because we are rotated
             ES_SCREEN_WIDTH_PREFIX: ES_SCREEN_WIDTH_PREFIX + VALUE_PREFIX + height + VALUE_POSTFIX,
             ES_SCREEN_HEIGHT_PREFIX: ES_SCREEN_HEIGHT_PREFIX + VALUE_PREFIX + width + VALUE_POSTFIX
         }
 
-    if not update_lines(es_settings_lines, es_dict):
-        print("No updates")
-        return 0
-
-    write_lines(ES_SETTINGS_PATH, es_settings_lines)
+    if update_lines(es_settings_lines, es_dict):
+        write_lines(ES_SETTINGS_PATH, es_settings_lines)
+    else:
+        print("No updates for EmulationStation")
 
     retro_config_lines = read_lines(RETRO_CONFIG_PATH)
+    landscape = rotation == '0' or rotation == '2'
+    # Retropie's portrait rotations (90/270) are the opposite of ES's
+    retro_rotation = rotation if landscape else str(4 - int(rotation))
 
     retro_dict = {
-        VIDEO_ROTATION: VIDEO_ROTATION + ' = "' + rotation + '"\n',
-        ASPECT_RATIO_INDEX: None if rotation == '0' or rotation == '2' else ASPECT_RATIO_INDEX_0
+        VIDEO_ROTATION: VIDEO_ROTATION + ' = "' + retro_rotation + '"\n',
+        ASPECT_RATIO_INDEX: None if landscape else ASPECT_RATIO_INDEX_0
     }
-    update_lines(retro_config_lines, retro_dict)
-    write_lines(RETRO_CONFIG_PATH, retro_config_lines)
+    if update_lines(retro_config_lines, retro_dict):
+        write_lines(RETRO_CONFIG_PATH, retro_config_lines)
+    else:
+        print("No Updates for RetroArch")
 
-    # touching this file causes emulationstation to restart on exit
-    open('/tmp/es-restart', 'a').close()
-
-    os.system('kill $(pidof emulationstation)')
+    try:
+        pid = subprocess.check_output(["pidof", "-s", "emulationstation"])
+        # touching this file causes emulationstation to restart on exit
+        open('/tmp/es-restart', 'a').close()
+        os.kill(int(pid), signal.SIGTERM)
+    except subprocess.CalledProcessError:
+        # EmulationStation not running
+        pass
     return 0
 
 

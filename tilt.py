@@ -3,16 +3,18 @@
 import RPi.GPIO as GPIO
 import datetime
 import time
+import rotate
+
+CHANNEL = 22  # BCM Channel
+DEBOUNCE = 1  # Debounce time in seconds
 
 
 def my_callback(v):
-    if v == GPIO.HIGH:
-        print('\n ▲ at ' + str(datetime.datetime.now()))
-    else:
-        print('\n▼  at ' + str(datetime.datetime.now()))
-
-
-CHANNEL = 22
+    rotate.rotate(v)
+    # if v == GPIO.HIGH:
+    #     print('\n ▲ at ' + str(datetime.datetime.now()))
+    # else:
+    #     print('\n▼  at ' + str(datetime.datetime.now()))
 
 
 try:
@@ -29,7 +31,7 @@ try:
         if current != last:
             # if we got a new value wait to see if it sticks (debounce)
             now = time.time()
-            end = now + 1  # end wait in 1000 millis
+            end = now + DEBOUNCE  # end wait in 1000 millis
             timeoutMs = int((end - now) * 1000)
             while True:
                 channel = GPIO.wait_for_edge(CHANNEL, GPIO.BOTH, timeout=timeoutMs)
