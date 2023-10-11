@@ -1,7 +1,4 @@
-# coding=utf-8
-
 import RPi.GPIO as GPIO
-import datetime
 import time
 import rotate
 
@@ -10,11 +7,7 @@ DEBOUNCE = 1  # Debounce time in seconds
 
 
 def my_callback(v):
-    rotate.rotate(v)
-    # if v == GPIO.HIGH:
-    #     print('\n ▲ at ' + str(datetime.datetime.now()))
-    # else:
-    #     print('\n▼  at ' + str(datetime.datetime.now()))
+    rotate.rotate(str(v))
 
 
 try:
